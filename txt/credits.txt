@@ -1,0 +1,2 @@
+English word count frequency: https://www3.nd.edu/~busiforc/handouts/cryptography/letterfrequencies.html
+most common 20k words: https://github.com/first20hours/google-10000-english/blob/master/20k.txt 

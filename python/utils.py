@@ -1,5 +1,16 @@
 from constants import *
-from math import log10
+from typing import TypeVar
+from math import log10, gcd
+from functools import reduce
+
+T = TypeVar('T')
+S = TypeVar('S')
+
+def try_getting_dict_value(dictionary: dict[T, S], key: T, default: S) -> S:
+    if key in dictionary.keys():
+        return dictionary[key]
+    else:
+        return default
 
 def analyse_frequency(cipher_text: str) -> dict[str, float]:
     return {
@@ -10,17 +21,8 @@ def analyse_frequency(cipher_text: str) -> dict[str, float]:
 def compute_frequency_distance(frequency_1: dict[str, float], frequency_2: dict[str, float]) -> float:
     ret: float = 0
     for char in set(frequency_1.keys()).union(frequency_2.keys()):
-        char_frequency_1: float
-        char_frequency_2: float
-        if char in frequency_1.keys():
-            char_frequency_1 = frequency_1[char]
-        else:
-            char_frequency_1 = 0
-
-        if char in frequency_2.keys():
-            char_frequency_2 = frequency_2[char]
-        else:
-            char_frequency_2 = 0
+        char_frequency_1: float = try_getting_dict_value(frequency_1, char, 0)
+        char_frequency_2: float = try_getting_dict_value(frequency_2, char, 0)
         
         ret += (char_frequency_1 - char_frequency_2) ** 2
     
@@ -41,6 +43,13 @@ def find_repeats(cipher_text: str, min_length: int | None = None) -> list[tuple[
     
     return found
 
+def count_words(text: str) -> int:
+    words: int = 0
+    for word in ENGLISH_WORDS:
+        words += text.count(word)
+    
+    return words
+
 def sanatize_cipher_text(cipher_text: str) -> str:
     cipher_text = cipher_text.lower()
     cipher_text = "".join([char for char in cipher_text if char in ENGLISH_ALPHABET])
@@ -57,3 +66,36 @@ def decrypt_ceaser(cipher_text: str, key: int) -> str:
         plain_text += char
     
     return plain_text
+
+def encrypt_affine(cipher_text: str, key: tuple[int, int]) -> str:
+    cipher_text = sanatize_cipher_text(cipher_text)
+    plain_text: str = ""
+    for char in cipher_text:
+        char = char.lower()
+        if char in ENGLISH_ALPHABET:
+            char = ENGLISH_ALPHABET[(
+                (ENGLISH_ALPHABET.index(char) - key[1]) * pow(key[0], -1, len(ENGLISH_ALPHABET))
+                ) % len(ENGLISH_ALPHABET)]
+        
+        plain_text += char
+    
+    return plain_text
+
+def find_vigenere_key_length(cipher_text: str) -> int:
+    min_length: int = 1
+    potential_length: int  = -1
+    while min_length < 10:
+        repeats: list[int] = [repeat[2] for repeat in find_repeats(cipher_text, min_length)]
+
+        if not repeats:
+            continue
+        
+        potential_length = reduce(gcd, repeats)
+
+        if potential_length == 1:
+            min_length += 1
+            continue
+        else:
+            break
+    
+    return potential_length
