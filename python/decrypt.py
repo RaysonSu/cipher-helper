@@ -25,8 +25,7 @@ def break_affine(cipher_text: str) -> str:
 
         for shift in range(len(ENGLISH_ALPHABET)):
             guess: str = encrypt_affine(cipher_text, (multiplier, shift))
-            guess_frequency: dict[str, float] = analyse_frequency(guess)
-            distance: float = compute_frequency_distance(guess_frequency, ENGLISH_LETTER_FREQUENCY)
+            distance: float = compute_frequency_score(guess)
             
             if best_guess > (distance, guess):
                 best_guess = (distance, guess)
@@ -45,12 +44,28 @@ def break_vigenere(cipher_text: str) -> str:
 
     return sanatize_cipher_text("".join(["".join(chunk) for chunk in zip(*ceaser_blocks)]))
 
+def break_subsitution(cipher_text: str) -> str:
+    cipher_text = sanatize_cipher_text(cipher_text)
+    initial_key: str =  get_initial_substition_key(cipher_text)
+
+    best_guess: tuple[float, str] = (compute_bigram_score(decrypt_subsitition(cipher_text, initial_key)), initial_key)
+    for _ in range(10):
+        guess_key: str = best_guess[1]
+        for _ in range(randint(1, 3)):
+            guess_key = randomly_modify_key(guess_key)
+        new_guess: str = make_canadiate_subsitition_solve(cipher_text, guess_key)
+        new_plain_text: str = decrypt_subsitition(cipher_text, new_guess)
+        best_guess = min(best_guess, (compute_bigram_score(new_plain_text), new_guess))
+
+    return decrypt_subsitition(cipher_text, best_guess[1])
+
 
 def break_all(cipher_text: str) -> str:
     solved_ciphers: list[Callable[[str], str]] = [
         break_ceaser,
         break_affine,
-        break_vigenere
+        break_vigenere,
+        break_subsitution
     ]
 
     best: tuple[int, str] = (-1, "")
